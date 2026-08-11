@@ -25,7 +25,7 @@ export const signup = async (req, res) => {
       return res.status(400).json({
         message: "Invalid email format",
       });
-    }
+    }  
 
     const user = await User.findOne({ email: email });
     if (user) return res.status(400).json({ message: "Email already exists" });
@@ -126,3 +126,4 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
