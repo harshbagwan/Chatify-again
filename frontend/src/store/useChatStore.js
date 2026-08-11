@@ -23,8 +23,8 @@ export const useChatStore = create((set, get) => ({
   },
 
   setActiveTab: (tab) => set({ activeTab: tab }),
-  // setSelectedUser: (selectedUser) => set({selectedUser:selectedUser}),
-  setSelectedUser: (selectedUser) => set({ selectedUser }), // same thing so wrote in short
+  // setSelectedUser: (selectedUser) => set({selectedUser:selectedUser}), 
+  setSelectedUser: (selectedUser) => set({ selectedUser }), // {selectedUser:selectedUser} same h ,,same thing so wrote in short
 
   getAllContacts: async () => {
     set({ isUsersLoading: true });
@@ -59,6 +59,34 @@ export const useChatStore = create((set, get) => ({
       toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
       set({ isMessagesLoading: false });
+    }
+  },
+
+  sendMessage: async (messageData) => {                   
+    const { selectedUser, messages } = get();
+    const { authUser } = useAuthStore.getState();
+
+    const tempId = `temp-${Date.now()}`;
+
+    const optimisticMessage = {
+      _id: tempId,
+      senderId: authUser._id,
+      receiverId: selectedUser._id,
+      text: messageData.text,
+      image: messageData.image,
+      createdAt: new Date().toISOString(),
+      isOptimistic: true, // flag to identify optimistic messages (optional)
+    };
+    // immidetaly update the ui by adding the message
+    set({ messages: [...messages, optimisticMessage] });
+
+    try {
+      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
+      set({ messages: messages.concat(res.data) });
+    } catch (error) {
+      // remove optimistic message on failure
+      set({ messages: messages });
+      toast.error(error.response?.data?.message || "Something went wrong");
     }
   },
 }));
