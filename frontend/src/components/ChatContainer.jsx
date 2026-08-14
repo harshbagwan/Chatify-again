@@ -25,13 +25,15 @@ const ChatContainer = () => {
     subscribeToMessages();
 
     return () => unsubscribeFromMessages();
-  }, [selectedUser, getMessagesByUserId, subscribeToMessages, unsubscribeFromMessages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUser._id]);
 
    useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);// whenever the messages update go ahead run this again and again so that we are always scrolling to the very latest messages 
+
 
   return (
     <>
