@@ -5,14 +5,27 @@ import { ENV } from "../lib/env.js";
 // this socket is the user that is connected from the frontend -- so this our socket connection
 export const socketAuthMiddleware = async (socket, next) => {
   try {
-    // extract token from http-only cookies
-    const token = socket.handshake.headers.cookie
-      ?.split("; ")
-      .find((row) => row.startsWith("jwt="))
-      ?.split("=")[1];
+    const rawCookies = socket.handshake.headers.cookie;
+    if (!rawCookies) {
+      console.log("Socket connection rejected: No cookies provided");
+      return next(new Error("Unauthorized - No Cookies Provided"));
+    }
+
+    // Parse all cookies safely, handling any spacing or cookie ordering
+    const parsedCookies = {};
+    rawCookies.split(";").forEach((cookieStr) => {
+      const parts = cookieStr.trim().split("=");
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        const value = parts.slice(1).join("=").trim();
+        parsedCookies[key] = value;
+      }
+    });
+
+    const token = parsedCookies.jwt;
 
     if (!token) {
-      console.log("Socket connection rejected: No token provided");
+      console.log("Socket connection rejected: No jwt token in cookies");
       return next(new Error("Unauthorized - No Token Provided"));
     }
 
@@ -23,7 +36,7 @@ export const socketAuthMiddleware = async (socket, next) => {
       return next(new Error("Unauthorized - Invalid Token"));
     }
 
-    // find the user fromdb
+    // find the user from db
     const user = await User.findById(decoded.userId).select("-password");
     if (!user) {
       console.log("Socket connection rejected: User not found");

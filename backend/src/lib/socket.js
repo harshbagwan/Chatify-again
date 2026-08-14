@@ -9,7 +9,16 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [ENV.CLIENT_URL],
+    origin: (origin, callback) => {
+      // allow requests with no origin or matching origins (with/without trailing slash)
+      if (!origin || !ENV.CLIENT_URL) return callback(null, true);
+      const cleanClientUrl = ENV.CLIENT_URL.replace(/\/$/, "");
+      const cleanOrigin = origin.replace(/\/$/, "");
+      if (cleanOrigin === cleanClientUrl || cleanOrigin.startsWith("http://localhost")) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   },
 });
@@ -17,8 +26,6 @@ const io = new Server(server, {
 // apply authentication middleware to all socket connections
 io.use(socketAuthMiddleware);
 
-
-                                 // 😅😅mene iss getReceiver socketid fucntion ko pehele wale commit ke sath hi online-users brach me push kardiya 
 // we will use this function to check if the user is online or not
 export function getReceiverSocketId(userId) {
   return userSocketMap[userId];
@@ -39,8 +46,11 @@ io.on("connection", (socket) => {
   // with socket.on we listen for events from clients
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.user.fullName);
-    delete userSocketMap[userId];
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    // only delete if the socket being disconnected is the active one stored
+    if (userSocketMap[userId] === socket.id) {
+      delete userSocketMap[userId];
+      io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    }
   });
 });
 
