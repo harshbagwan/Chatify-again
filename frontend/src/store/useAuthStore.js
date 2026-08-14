@@ -84,6 +84,11 @@ export const useAuthStore = create((set, get) => ({
 
     const socket = io(BASE_URL, {
       withCredentials: true, // this ensures cookies are sent with the connection
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     socket.connect();
@@ -93,6 +98,11 @@ export const useAuthStore = create((set, get) => ({
     // listen for online users event
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
+    });
+
+    // log reconnections for debugging
+    socket.io.on("reconnect", (attempt) => {
+      console.log(`Socket reconnected after ${attempt} attempts`);
     });
   },
   disconnectSocket: () => {

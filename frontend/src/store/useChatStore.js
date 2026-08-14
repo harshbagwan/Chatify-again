@@ -123,19 +123,30 @@ export const useChatStore = create((set, get) => ({
     // attach listener now
     attachMessageListener();
 
-    // re-attach listener + fetch missed messages on socket reconnect (mobile network drops)
-    socket.off("connect"); // remove old reconnect handler
-    socket.on("connect", () => {
+    // remove old reconnect handler if exists (use specific reference, NOT socket.off("connect"))
+    const oldReconnectHandler = get()._reconnectHandler;
+    if (oldReconnectHandler) {
+      socket.off("connect", oldReconnectHandler);
+    }
+
+    // re-attach listener + fetch missed messages on socket reconnect
+    const reconnectHandler = () => {
       console.log("Socket reconnected, re-subscribing to messages");
       attachMessageListener();
-      // fetch any messages that were missed while disconnected
       const currentSelectedUser = get().selectedUser;
       if (currentSelectedUser) {
         get().getMessagesByUserId(currentSelectedUser._id);
       }
-    });
+    };
+    socket.on("connect", reconnectHandler);
+    set({ _reconnectHandler: reconnectHandler });
 
     // re-fetch messages when tab becomes visible again (mobile tab sleep)
+    const oldVisibilityHandler = get()._visibilityHandler;
+    if (oldVisibilityHandler) {
+      document.removeEventListener("visibilitychange", oldVisibilityHandler);
+    }
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         const currentSelectedUser = get().selectedUser;
@@ -144,10 +155,7 @@ export const useChatStore = create((set, get) => ({
         }
       }
     };
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // store the handler reference for cleanup
     set({ _visibilityHandler: handleVisibilityChange });
   },
 
@@ -155,7 +163,12 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (socket) {
       socket.off("newMessage");
-      socket.off("connect");
+      // remove ONLY our specific reconnect handler, not all "connect" listeners
+      const reconnectHandler = get()._reconnectHandler;
+      if (reconnectHandler) {
+        socket.off("connect", reconnectHandler);
+        set({ _reconnectHandler: null });
+      }
     }
     // clean up visibility listener
     const handler = get()._visibilityHandler;
