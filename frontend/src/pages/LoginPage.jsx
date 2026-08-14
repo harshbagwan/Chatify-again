@@ -16,7 +16,6 @@ function LoginPage() {
   };
 
   return (
-  return (
     <div className="relative w-full max-w-5xl h-auto md:h-[calc(100vh-3rem)] max-h-[700px] my-auto">
       <BorderAnimatedContainer>
         <div className="w-full h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
