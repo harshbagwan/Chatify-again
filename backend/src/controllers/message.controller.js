@@ -71,10 +71,11 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
+    //pehle hi likh diya aur online-users branch me push kar diya (niche ki 4 line) 
     // send message in real-time if the receiver is online
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+      io.to(receiverSocketId).emit("newMessage", newMessage);//emit("eventname",actual thing sending with an event)
     }
 
     res.status(201).json(newMessage);

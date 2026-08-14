@@ -71,9 +71,12 @@ function MessageInput() {
           value={text}
           onChange={(e) => {
             setText(e.target.value);
-            isSoundEnabled && playRandomKeyStrokeSound();
+            if (isSoundEnabled) {
+              // defer sound playback so it doesn't interfere with the input update
+              setTimeout(() => playRandomKeyStrokeSound(), 0);
+            }
           }}
-          className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-lg py-2 px-4"
+          className="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-lg py-2 px-4 text-slate-200 placeholder-slate-400"
           placeholder="Type your message..."
         />
 

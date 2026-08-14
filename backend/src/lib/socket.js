@@ -17,6 +17,8 @@ const io = new Server(server, {
 // apply authentication middleware to all socket connections
 io.use(socketAuthMiddleware);
 
+
+                                 // 😅😅mene iss getReceiver socketid fucntion ko pehele wale commit ke sath hi online-users brach me push kardiya 
 // we will use this function to check if the user is online or not
 export function getReceiverSocketId(userId) {
   return userSocketMap[userId];

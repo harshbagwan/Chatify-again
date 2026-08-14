@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { useAuthStore } from "./useAuthStore";
+
 export const useChatStore = create((set, get) => ({
   // we are returning a object inside the callback function of create() method, which will be the initial state of our store
   allContacts: [], // initial state of allContacts is an empty array
@@ -82,10 +83,15 @@ export const useChatStore = create((set, get) => ({
 
     try {
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: messages.concat(res.data) });
+      // replace the optimistic message with the real server response
+      set({
+        messages: get().messages.map((msg) =>
+          msg._id === tempId ? res.data : msg
+        ),
+      });
     } catch (error) {
       // remove optimistic message on failure
-      set({ messages: messages });
+      set({ messages: get().messages.filter((msg) => msg._id !== tempId) });
       toast.error(error.response?.data?.message || "Something went wrong");
     }
   },
@@ -97,16 +103,30 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
+    // remove any existing listener first to prevent duplicates
+    socket.off("newMessage");
+
     socket.on("newMessage", (newMessage) => {
       // only add the message if it's from the currently selected user
-      if (newMessage.senderId !== selectedUser._id) return;
-      set({ messages: [...get().messages, newMessage] });
+      const currentSelectedUser = get().selectedUser;
+      if (!currentSelectedUser || newMessage.senderId !== currentSelectedUser._id) return;
+      const currentMessages = get().messages;
+      set({ messages: [...currentMessages, newMessage] });
+
+      // read isSoundEnabled from current state, not from stale closure
+      if(get().isSoundEnabled) {
+        const notificationSound = new Audio("/sounds/notification.mp3");
+
+        notificationSound.currentTime=0; // reset to start
+        notificationSound.play().catch((e) => console.log("Audio play failed:", e))
+      }
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    if (!socket) return;
     socket.off("newMessage");
   },
+
 }));
+ 
