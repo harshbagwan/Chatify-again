@@ -103,29 +103,66 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
-    // remove any existing listener first to prevent duplicates
-    socket.off("newMessage");
+    // helper to attach the newMessage listener
+    const attachMessageListener = () => {
+      socket.off("newMessage"); // remove existing to prevent duplicates
+      socket.on("newMessage", (newMessage) => {
+        const currentSelectedUser = get().selectedUser;
+        if (!currentSelectedUser || newMessage.senderId !== currentSelectedUser._id) return;
+        const currentMessages = get().messages;
+        set({ messages: [...currentMessages, newMessage] });
 
-    socket.on("newMessage", (newMessage) => {
-      // only add the message if it's from the currently selected user
+        if (get().isSoundEnabled) {
+          const notificationSound = new Audio("/sounds/notification.mp3");
+          notificationSound.currentTime = 0;
+          notificationSound.play().catch((e) => console.log("Audio play failed:", e));
+        }
+      });
+    };
+
+    // attach listener now
+    attachMessageListener();
+
+    // re-attach listener + fetch missed messages on socket reconnect (mobile network drops)
+    socket.off("connect"); // remove old reconnect handler
+    socket.on("connect", () => {
+      console.log("Socket reconnected, re-subscribing to messages");
+      attachMessageListener();
+      // fetch any messages that were missed while disconnected
       const currentSelectedUser = get().selectedUser;
-      if (!currentSelectedUser || newMessage.senderId !== currentSelectedUser._id) return;
-      const currentMessages = get().messages;
-      set({ messages: [...currentMessages, newMessage] });
-
-      // read isSoundEnabled from current state, not from stale closure
-      if(get().isSoundEnabled) {
-        const notificationSound = new Audio("/sounds/notification.mp3");
-
-        notificationSound.currentTime=0; // reset to start
-        notificationSound.play().catch((e) => console.log("Audio play failed:", e))
+      if (currentSelectedUser) {
+        get().getMessagesByUserId(currentSelectedUser._id);
       }
     });
+
+    // re-fetch messages when tab becomes visible again (mobile tab sleep)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const currentSelectedUser = get().selectedUser;
+        if (currentSelectedUser) {
+          get().getMessagesByUserId(currentSelectedUser._id);
+        }
+      }
+    };
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // store the handler reference for cleanup
+    set({ _visibilityHandler: handleVisibilityChange });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+    if (socket) {
+      socket.off("newMessage");
+      socket.off("connect");
+    }
+    // clean up visibility listener
+    const handler = get()._visibilityHandler;
+    if (handler) {
+      document.removeEventListener("visibilitychange", handler);
+      set({ _visibilityHandler: null });
+    }
   },
 
 }));
