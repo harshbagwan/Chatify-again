@@ -10,11 +10,11 @@ import NoConversationPlaceholder from "../components/NoConversationPlaceholder";
 const ChatPage = () => {
   const { activeTab , selectedUser } = useChatStore();
   return (
-    <div className="realtive w-full max-w-6xl h-[800px]">
+    <div className="relative w-full max-w-6xl h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)] max-h-[850px]">
 
       <BorderAnimatedContainer>
         {/* LEFT SIDE */}
-        <div className="w-80 bg-slate-800/50 backdrop-blur-sm flex flex-col">
+        <div className={`w-full md:w-80 bg-slate-800/50 backdrop-blur-sm ${selectedUser ? "hidden md:flex" : "flex"} flex-col h-full`}>
           <ProfileHeader />
           <ActiveTabSwitch />
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -23,8 +23,8 @@ const ChatPage = () => {
         </div>
 
         {/* RIGHT SIDE  */}
-        <div className="flex-1 flex flex-col bg-slate-900/50 backdrop-blur-sm">
-        {selectedUser ? <ChatContainer/> : <NoConversationPlaceholder/>}
+        <div className={`flex-1 ${selectedUser ? "flex" : "hidden md:flex"} flex-col bg-slate-900/50 backdrop-blur-sm h-full`}>
+          {selectedUser ? <ChatContainer/> : <NoConversationPlaceholder/>}
         </div>
 
 

@@ -27,13 +27,13 @@ function ProfileHeader() {
   };
 
   return (
-    <div className="p-6 border-b border-slate-700/50">
+    <div className="p-3 md:p-6 border-b border-slate-700/50 flex-shrink-0">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {/* AVATAR */}
-          <div className="avatar online">
+          <div className="avatar online flex-shrink-0">
             <button
-              className="size-14 rounded-full overflow-hidden relative group"
+              className="size-10 md:size-14 rounded-full overflow-hidden relative group"
               onClick={() => fileInputRef.current.click()}
             >
               <img
@@ -56,8 +56,8 @@ function ProfileHeader() {
           </div>
 
           {/* USERNAME & ONLINE TEXT */}
-          <div>
-            <h3 className="text-slate-200 font-medium text-base max-w-[180px] truncate">
+          <div className="min-w-0">
+            <h3 className="text-slate-200 font-medium text-sm md:text-base max-w-[120px] sm:max-w-[180px] truncate">
               {authUser.fullName}
             </h3>
 
